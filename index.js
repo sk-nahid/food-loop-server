@@ -27,7 +27,18 @@ async function run() {
     const foodCollections = client.db('assignment-11').collection('food-collection')
 
     //food collection apis
-    
+    app.get('/food', async (req, res) => {
+      const query = {}
+      const result = await foodCollections.find(query).toArray();
+      res.send(result)
+    })
+    app.get('/food/:id', async (req, res) => {
+      const id = req.params.id;
+      const query =new ObjectId(id)
+      const result = await foodCollections.findOne(query)
+      res.send(result)
+    })
+
 
 
 
