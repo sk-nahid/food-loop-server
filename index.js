@@ -28,7 +28,13 @@ async function run() {
 
     //food collection apis
     app.get('/food', async (req, res) => {
-      const query = {}
+      const query = {foodStatus:'available'}
+      const limit = req.query.limit
+      console.log(limit)
+      if (limit ) {
+        const result = await foodCollections.find(query).limit(6).toArray()
+        return res.send(result)
+      }
       const result = await foodCollections.find(query).toArray();
       res.send(result)
     })
