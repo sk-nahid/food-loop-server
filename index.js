@@ -19,12 +19,16 @@ const client = new MongoClient(uri, {
   }
 });
 async function run() {
+
+
+
   try {
     // Connect the client to the server	(optional starting in v4.7)
     //   await client.connect();
 
     //collections
     const foodCollections = client.db('assignment-11').collection('food-collection')
+    const requestCollections = client.db('assignment-11').collection('request-collection')
 
     //food collection apis
     app.get('/food', async (req, res) => {
@@ -35,7 +39,7 @@ async function run() {
         const result = await foodCollections.find(query).limit(6).toArray()
         return res.send(result)
       }
-      const result = await foodCollections.find(query).toArray();
+      const result = await foodCollections.find(query).sort({expiredDate: 1}).toArray();
       res.send(result)
     })
     app.get('/food/:id', async (req, res) => {
@@ -49,7 +53,29 @@ async function run() {
       const result = await foodCollections.insertOne(food);
       res.send(result)
     })
+    app.patch('/food/:id',async (req, res) => {
+      const id = req.params.id
+      const filter = { _id: new ObjectId(id) }
+      const foodStatus = req.body;
+      console.log(id, foodStatus)
+      const update = {
+        $set:{foodStatus}
+      }
+      const result = await foodCollections.updateOne(filter, update);
+      res.send(result)
+    })
 
+
+    //request food apis
+    app.get('/request-food',async (req, res) => {
+      const result = await requestCollections.find().toArray();
+      res.send(result)
+    })
+    app.post('/request-food',async (req, res) => {
+      const request = req.body;
+      const result = await requestCollections.insertOne(request);
+      res.send(result)
+    })
 
 
 
