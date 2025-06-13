@@ -67,8 +67,14 @@ async function run() {
 
 
     //request food apis
-    app.get('/request-food',async (req, res) => {
-      const result = await requestCollections.find().toArray();
+    app.get('/request-food', async (req, res) => {
+      const email = req.query.email;
+      let query = {}
+      if (email) {
+        query = { email }
+        console.log(query)
+      }
+      const result = await requestCollections.find(query).toArray();
       res.send(result)
     })
     app.post('/request-food',async (req, res) => {
