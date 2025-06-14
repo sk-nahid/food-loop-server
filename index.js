@@ -32,11 +32,18 @@ async function run() {
 
     //food collection apis
     app.get('/food', async (req, res) => {
+      const email = req.query.email;
+      
       const query = {foodStatus:'available'}
       const limit = req.query.limit
-      console.log(limit)
       if (limit ) {
         const result = await foodCollections.find(query).limit(6).toArray()
+        return res.send(result)
+      }
+      if (email) {
+        const query = { donorEmail: email }
+        const result = await foodCollections.find(query).toArray();
+        
         return res.send(result)
       }
       const result = await foodCollections.find(query).sort({expiredDate: 1}).toArray();
@@ -56,12 +63,30 @@ async function run() {
     app.patch('/food/:id',async (req, res) => {
       const id = req.params.id
       const filter = { _id: new ObjectId(id) }
-      const foodStatus = req.body;
+      const foodStatus = req.body.foodStatus;
       console.log(id, foodStatus)
       const update = {
         $set:{foodStatus}
       }
       const result = await foodCollections.updateOne(filter, update);
+      res.send(result)
+    })
+    app.put('/food/:id', async (req, res) => {
+      const id = req.params.id;
+      const find = {_id: new ObjectId(id)}
+      const update = req.body;
+      const updateDoc = {
+        $set:update
+      }
+      console.log(updateDoc)
+      const result = await foodCollections.updateOne(find, updateDoc);
+      res.send(result)
+    })
+
+    app.delete('/food/:id',async (req, res) => {
+      const id = req.params.id
+      const find = { _id: new ObjectId(id) };
+      const result = await foodCollections.deleteOne(find);
       res.send(result)
     })
 
