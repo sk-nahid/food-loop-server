@@ -2,11 +2,52 @@ const express = require('express')
 const cors = require('cors')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
+//firebase sdk
+const admin = require("firebase-admin");
+const serviceAccount = require("./firebase-admin-serviceKey.json");
+
 const app = express()
 const port = 3000
 
 app.use(cors());
 app.use(express.json())
+
+
+
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+
+
+//validation
+const fbTokenValidation = async (req, res, next) => {
+  const authHeaders = req.headers?.authorization;
+
+  if (!authHeaders || !authHeaders.startsWith('bearer ')) {
+    return res.status(401).send({message: 'unauthorized access'})
+  }
+  const token = authHeaders.split(' ')[1]
+
+  try {
+    const decoded = await admin.auth().verifyIdToken(token);
+    req.decoded = decoded
+    next()
+  }
+  catch (error) {
+    return res.status(401).send({message: 'unauthorized access'})
+  }
+
+  
+}
+const verifyEmail = (req, res, next) => {
+  if (req.query.email !== req.decoded.email) {
+    return res.status(403).send({message: 'forbidden access'})
+
+  }
+  next()
+}
 
 //mongoDB 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.keyl6e1.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -31,59 +72,71 @@ async function run() {
     const requestCollections = client.db('assignment-11').collection('request-collection')
 
     //food collection apis
-    app.get('/food', async (req, res) => {
+    app.get('/food',  async (req, res) => {
       const email = req.query.email;
+      const search = req.query.search;
       
-      const query = {foodStatus:'available'}
+
+      const query = { foodStatus: 'available' }
       const limit = req.query.limit
-      if (limit ) {
-        const result = await foodCollections.find(query).limit(6).toArray()
+      if (limit) {
+        const result = await foodCollections.find(query).sort({ foodQuantity: -1 }).limit(6).toArray()
         return res.send(result)
       }
       if (email) {
         const query = { donorEmail: email }
         const result = await foodCollections.find(query).toArray();
-        
+
         return res.send(result)
       }
-      const result = await foodCollections.find(query).sort({expiredDate: 1}).toArray();
+      if (search) {
+        const filter = {
+          $or: [
+            { foodName: { $regex: search, $options: 'i' } }
+          ],
+          foodStatus:'available'
+        }
+        const result = await foodCollections.find(filter).toArray();
+        return res.send(result)
+      }
+      const result = await foodCollections.find(query).sort({ expiredDate: 1 }).toArray();
       res.send(result)
     })
     app.get('/food/:id', async (req, res) => {
       const id = req.params.id;
-      const query =new ObjectId(id)
+      const query = new ObjectId(id)
       const result = await foodCollections.findOne(query)
       res.send(result)
     })
-    app.post('/food',async (req, res) => {
+    app.post('/food', async (req, res) => {
       const food = req.body;
       const result = await foodCollections.insertOne(food);
       res.send(result)
     })
-    app.patch('/food/:id',async (req, res) => {
+    app.patch('/food/:id', async (req, res) => {
       const id = req.params.id
       const filter = { _id: new ObjectId(id) }
       const foodStatus = req.body.foodStatus;
       console.log(id, foodStatus)
       const update = {
-        $set:{foodStatus}
+        $set: { foodStatus }
       }
       const result = await foodCollections.updateOne(filter, update);
       res.send(result)
     })
     app.put('/food/:id', async (req, res) => {
       const id = req.params.id;
-      const find = {_id: new ObjectId(id)}
+      const find = { _id: new ObjectId(id) }
       const update = req.body;
       const updateDoc = {
-        $set:update
+        $set: update
       }
       console.log(updateDoc)
       const result = await foodCollections.updateOne(find, updateDoc);
       res.send(result)
     })
 
-    app.delete('/food/:id',async (req, res) => {
+    app.delete('/food/:id', async (req, res) => {
       const id = req.params.id
       const find = { _id: new ObjectId(id) };
       const result = await foodCollections.deleteOne(find);
@@ -92,17 +145,18 @@ async function run() {
 
 
     //request food apis
-    app.get('/request-food', async (req, res) => {
+    app.get('/request-food',fbTokenValidation,verifyEmail, async (req, res) => {
       const email = req.query.email;
       let query = {}
+      
       if (email) {
         query = { email }
-        console.log(query)
+        
       }
       const result = await requestCollections.find(query).toArray();
       res.send(result)
     })
-    app.post('/request-food',async (req, res) => {
+    app.post('/request-food', async (req, res) => {
       const request = req.body;
       const result = await requestCollections.insertOne(request);
       res.send(result)
