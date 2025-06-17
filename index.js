@@ -11,7 +11,7 @@ const app = express()
 const port = 3000
 
 app.use(cors({
-  origin: ['https://assignment-11-acf48.web.app', 'https://foodloopbd.netlify.app']
+  origin: ['https://assignment-11-acf48.web.app', 'https://foodloopbd.netlify.app', 'http://localhost:5174','http://localhost:5173']
 }));
 app.use(express.json())
 
