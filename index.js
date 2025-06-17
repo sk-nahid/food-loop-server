@@ -4,12 +4,15 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 //firebase sdk
 const admin = require("firebase-admin");
-const serviceAccount = require("./firebase-admin-serviceKey.json");
+const decoded = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString('utf8')
+const serviceAccount = JSON.parse(decoded)
 
 const app = express()
 const port = 3000
 
-app.use(cors());
+app.use(cors({
+  origin: ['https://assignment-11-acf48.web.app']
+}));
 app.use(express.json())
 
 
@@ -117,7 +120,6 @@ async function run() {
       const id = req.params.id
       const filter = { _id: new ObjectId(id) }
       const foodStatus = req.body.foodStatus;
-      console.log(id, foodStatus)
       const update = {
         $set: { foodStatus }
       }
@@ -131,7 +133,6 @@ async function run() {
       const updateDoc = {
         $set: update
       }
-      console.log(updateDoc)
       const result = await foodCollections.updateOne(find, updateDoc);
       res.send(result)
     })
@@ -166,8 +167,8 @@ async function run() {
 
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
