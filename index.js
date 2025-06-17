@@ -11,7 +11,7 @@ const app = express()
 const port = 3000
 
 app.use(cors({
-  origin: ['https://assignment-11-acf48.web.app']
+  origin: ['https://assignment-11-acf48.web.app', 'https://foodloopbd.netlify.app']
 }));
 app.use(express.json())
 
@@ -29,7 +29,7 @@ const fbTokenValidation = async (req, res, next) => {
   const authHeaders = req.headers?.authorization;
 
   if (!authHeaders || !authHeaders.startsWith('bearer ')) {
-    return res.status(401).send({message: 'unauthorized access'})
+    return res.status(401).send({ message: 'unauthorized access' })
   }
   const token = authHeaders.split(' ')[1]
 
@@ -39,14 +39,14 @@ const fbTokenValidation = async (req, res, next) => {
     next()
   }
   catch (error) {
-    return res.status(401).send({message: 'unauthorized access'})
+    return res.status(401).send({ message: 'unauthorized access' })
   }
 
-  
+
 }
 const verifyEmail = (req, res, next) => {
   if (req.query.email !== req.decoded.email) {
-    return res.status(403).send({message: 'forbidden access'})
+    return res.status(403).send({ message: 'forbidden access' })
 
   }
   next()
@@ -75,10 +75,10 @@ async function run() {
     const requestCollections = client.db('assignment-11').collection('request-collection')
 
     //food collection apis
-    app.get('/food',  async (req, res) => {
-      const email = req.query.email;
+    app.get('/food', async (req, res) => {
+
       const search = req.query.search;
-      
+
 
       const query = { foodStatus: 'available' }
       const limit = req.query.limit
@@ -86,24 +86,27 @@ async function run() {
         const result = await foodCollections.find(query).sort({ foodQuantity: -1 }).limit(6).toArray()
         return res.send(result)
       }
-      if (email) {
-        const query = { donorEmail: email }
-        const result = await foodCollections.find(query).toArray();
 
-        return res.send(result)
-      }
       if (search) {
         const filter = {
           $or: [
             { foodName: { $regex: search, $options: 'i' } }
           ],
-          foodStatus:'available'
+          foodStatus: 'available'
         }
         const result = await foodCollections.find(filter).toArray();
         return res.send(result)
       }
       const result = await foodCollections.find(query).sort({ expiredDate: 1 }).toArray();
       res.send(result)
+    })
+    app.get('/my-food',fbTokenValidation, verifyEmail, async (req, res) => {
+      const email = req.query.email;
+      const query = { donorEmail: email }
+      const result = await foodCollections.find(query).toArray();
+      console.log(query)
+
+      return res.send(result)
     })
     app.get('/food/:id', async (req, res) => {
       const id = req.params.id;
@@ -146,13 +149,13 @@ async function run() {
 
 
     //request food apis
-    app.get('/request-food',fbTokenValidation,verifyEmail, async (req, res) => {
+    app.get('/request-food', fbTokenValidation, verifyEmail, async (req, res) => {
       const email = req.query.email;
       let query = {}
-      
+
       if (email) {
         query = { email }
-        
+
       }
       const result = await requestCollections.find(query).toArray();
       res.send(result)
