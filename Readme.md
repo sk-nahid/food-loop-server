@@ -170,7 +170,7 @@ This project is licensed under the MIT License.
 
 ## 💡 Author
 
-Developed by **\[Your Name]**
+Developed by **\[S.K. Nahid]**
 
 ```
 
